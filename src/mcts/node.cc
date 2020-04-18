@@ -279,7 +279,7 @@ void Node::CancelScoreUpdate(int multivisit) {
 
 void Node::FinalizeScoreUpdate(float v, float d, float m, int multivisit) {
   // Recompute Q.
-  float delta = FastLog2( 1.0f + n_ ) * multivisit;
+  float delta = FastLog2( 2.0f + n_/400.0f ) * multivisit;
   wl_ += delta * (v - wl_) / (n_ + delta);
   d_ += delta * (d - d_) / (n_ + delta);
   m_ += delta * (m - m_) / (n_ + delta);
