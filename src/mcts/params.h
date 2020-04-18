@@ -47,6 +47,7 @@ class SearchParams {
     return options_.Get<int>(kMaxPrefetchBatchId);
   }
   bool GetLogitQ() const { return kLogitQ; }
+  float GetBackupFactor() const { return kBackupFactor; }
   float GetCpuct(bool at_root) const { return at_root ? kCpuctAtRoot : kCpuct; }
   float GetCpuctBase(bool at_root) const {
     return at_root ? kCpuctBaseAtRoot : kCpuctBase;
