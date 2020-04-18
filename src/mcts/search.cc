@@ -1477,7 +1477,7 @@ void SearchWorker::DoBackupUpdateSingleNode(
       m = n->GetM();
     }
     n->FinalizeScoreUpdate(v / (1.0f + params_.GetShortSightedness() * depth),
-                           d, m, node_to_process.multivisit);
+                           d, m, node_to_process.multivisit, params_.GetBackupFactor());
 
     // Nothing left to do without ancestors to update.
     if (!p) break;
