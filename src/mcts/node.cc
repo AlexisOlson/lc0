@@ -39,6 +39,7 @@
 #include "neural/network.h"
 #include "utils/exception.h"
 #include "utils/hashcat.h"
+#include "utils/fastmath.h"
 
 namespace lczero {
 
@@ -278,9 +279,10 @@ void Node::CancelScoreUpdate(int multivisit) {
 
 void Node::FinalizeScoreUpdate(float v, float d, float m, int multivisit) {
   // Recompute Q.
-  wl_ += multivisit * (v - wl_) / (n_ + multivisit);
-  d_ += multivisit * (d - d_) / (n_ + multivisit);
-  m_ += multivisit * (m - m_) / (n_ + multivisit);
+  float delta = FastLog2( 1.0f * n_ ) * multivisit;
+  wl_ += delta * (v - wl_) / (n_ + delta);
+  d_ += delta * (d - d_) / (n_ + delta);
+  m_ += delta * (m - m_) / (n_ + delta);
 
   // If first visit, update parent's sum of policies visited at least once.
   if (n_ == 0 && parent_ != nullptr) {
