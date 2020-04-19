@@ -172,6 +172,7 @@ class SearchParams {
   // TODO(crem) Some of those parameters can be converted to be dynamic after
   //            trivial search optimizations.
   const bool kLogitQ;
+  const float kBackupFactor;
   const float kCpuct;
   const float kCpuctAtRoot;
   const float kCpuctBase;
