@@ -47,6 +47,8 @@ class SearchParams {
     return options_.Get<int>(kMaxPrefetchBatchId);
   }
   bool GetLogitQ() const { return kLogitQ; }
+  float GetPolicyDecayShift() const { return kPolicyDecayShift; }
+  float GetPolicyDecaySlope() const { return kPolicyDecaySlope; }
   float GetCpuct(bool at_root) const { return at_root ? kCpuctAtRoot : kCpuct; }
   float GetCpuctBase(bool at_root) const {
     return at_root ? kCpuctBaseAtRoot : kCpuctBase;
@@ -59,6 +61,9 @@ class SearchParams {
     return options_.Get<float>(kTemperatureVisitOffsetId);
   }
   int GetTempDecayMoves() const { return options_.Get<int>(kTempDecayMovesId); }
+  int GetTempDecayDelayMoves() const {
+    return options_.Get<int>(kTempDecayDelayMovesId);
+  }
   int GetTemperatureCutoffMove() const {
     return options_.Get<int>(kTemperatureCutoffMoveId);
   }
@@ -114,6 +119,8 @@ class SearchParams {
   static const OptionId kMiniBatchSizeId;
   static const OptionId kMaxPrefetchBatchId;
   static const OptionId kLogitQId;
+  static const OptionId kPolicyDecayShiftId;
+  static const OptionId kPolicyDecaySlopeId;
   static const OptionId kCpuctId;
   static const OptionId kCpuctAtRootId;
   static const OptionId kCpuctBaseId;
@@ -123,6 +130,7 @@ class SearchParams {
   static const OptionId kRootHasOwnCpuctParamsId;
   static const OptionId kTemperatureId;
   static const OptionId kTempDecayMovesId;
+  static const OptionId kTempDecayDelayMovesId;
   static const OptionId kTemperatureCutoffMoveId;
   static const OptionId kTemperatureEndgameId;
   static const OptionId kTemperatureWinpctCutoffId;
@@ -170,6 +178,8 @@ class SearchParams {
   // TODO(crem) Some of those parameters can be converted to be dynamic after
   //            trivial search optimizations.
   const bool kLogitQ;
+  const float kPolicyDecayShift;
+  const float kPolicyDecaySlope;
   const float kCpuct;
   const float kCpuctAtRoot;
   const float kCpuctBase;

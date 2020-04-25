@@ -57,6 +57,12 @@ const OptionId SearchParams::kLogitQId{
     "logit-q", "LogitQ",
     "Apply logit to Q when determining Q+U best child. This makes the U term "
     "less dominant when Q is near -1 or +1."};
+const OptionId SearchParams::kPolicyDecayShiftId{
+    "policy-decay-shift", "PolicyDecayShift",
+    "Adjusts how soon policy effect starts to decay."};
+const OptionId SearchParams::kPolicyDecaySlopeId{
+    "policy-decay-slope", "PolicyDecaySlope",
+    "Adjusts how fast policy effect decays to 1."};
 const OptionId SearchParams::kCpuctId{
     "cpuct", "CPuct",
     "cpuct_init constant from \"UCT search\" algorithm. Higher values promote "
@@ -91,9 +97,14 @@ const OptionId SearchParams::kTemperatureId{
     "while making the move."};
 const OptionId SearchParams::kTempDecayMovesId{
     "tempdecay-moves", "TempDecayMoves",
-    "Reduce temperature for every move from the game start to this number of "
-    "moves, decreasing linearly from initial temperature to 0. A value of 0 "
-    "disables tempdecay."};
+    "Reduce temperature for every move after the first move, decreasing "
+    "linearly over this number of moves from initial temperature to 0. "
+    "A value of 0 disables tempdecay."};
+const OptionId SearchParams::kTempDecayDelayMovesId{
+    "tempdecay-delay-moves", "TempDecayDelayMoves",
+    "Delay the linear decrease of temperature by this number of moves, "
+    "decreasing linearly from initial temperature to 0. A value of 0 starts "
+    "tempdecay after the first move."};
 const OptionId SearchParams::kTemperatureCutoffMoveId{
     "temp-cutoff-move", "TempCutoffMove",
     "Move number, starting from which endgame temperature is used rather "
@@ -259,15 +270,18 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<IntOption>(kMiniBatchSizeId, 1, 1024) = 256;
   options->Add<IntOption>(kMaxPrefetchBatchId, 0, 1024) = 32;
   options->Add<BoolOption>(kLogitQId) = false;
+  options->Add<FloatOption>(kPolicyDecayShiftId, 0.0f, 100.0f) = 0.1f;
+  options->Add<FloatOption>(kPolicyDecaySlopeId, 0.0f, 100.0f) = 0.5f;
   options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) = 2.147f;
   options->Add<FloatOption>(kCpuctAtRootId, 0.0f, 100.0f) = 2.147f;
   options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 18368.0f;
   options->Add<FloatOption>(kCpuctBaseAtRootId, 1.0f, 1000000000.0f) = 18368.0f;
-  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 2.815f;
-  options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 2.815f;
+  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 0.0f;
+  options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 0.0f;
   options->Add<BoolOption>(kRootHasOwnCpuctParamsId) = true;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
   options->Add<IntOption>(kTempDecayMovesId, 0, 100) = 0;
+  options->Add<IntOption>(kTempDecayDelayMovesId, 0, 100) = 0;
   options->Add<IntOption>(kTemperatureCutoffMoveId, 0, 1000) = 0;
   options->Add<FloatOption>(kTemperatureEndgameId, 0.0f, 100.0f) = 0.0f;
   options->Add<FloatOption>(kTemperatureWinpctCutoffId, 0.0f, 100.0f) = 100.0f;
@@ -322,6 +336,13 @@ void SearchParams::Populate(OptionsParser* options) {
   options->HideOption(kLogLiveStatsId);
   options->HideOption(kDisplayCacheUsageId);
   options->HideOption(kRootHasOwnCpuctParamsId);
+  options->HideOption(kTemperatureId);
+  options->HideOption(kTempDecayMovesId);
+  options->HideOption(kTempDecayDelayMovesId);
+  options->HideOption(kTemperatureCutoffMoveId);
+  options->HideOption(kTemperatureEndgameId);
+  options->HideOption(kTemperatureWinpctCutoffId);
+  options->HideOption(kTemperatureVisitOffsetId);
   options->HideOption(kMovesLeftConstantFactorId);
   options->HideOption(kMovesLeftScaledFactorId);
   options->HideOption(kMovesLeftQuadraticFactorId);
@@ -330,6 +351,8 @@ void SearchParams::Populate(OptionsParser* options) {
 SearchParams::SearchParams(const OptionsDict& options)
     : options_(options),
       kLogitQ(options.Get<bool>(kLogitQId)),
+      kPolicyDecayShift(options.Get<float>(kPolicyDecayShiftId)),
+      kPolicyDecaySlope(options.Get<float>(kPolicyDecaySlopeId)),
       kCpuct(options.Get<float>(kCpuctId)),
       kCpuctAtRoot(options.Get<float>(
           options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpuctAtRootId
