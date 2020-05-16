@@ -323,21 +323,6 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<IntOption>(kDrawScoreWhiteId, -100, 100) = 0;
   options->Add<IntOption>(kDrawScoreBlackId, -100, 100) = 0;
 
-  options->HideOption(kNoiseEpsilonId);
-  options->HideOption(kNoiseAlphaId);
-  options->HideOption(kLogLiveStatsId);
-  options->HideOption(kDisplayCacheUsageId);
-  options->HideOption(kRootHasOwnCpuctParamsId);
-  options->HideOption(kTemperatureId);
-  options->HideOption(kTempDecayMovesId);
-  options->HideOption(kTempDecayDelayMovesId);
-  options->HideOption(kTemperatureCutoffMoveId);
-  options->HideOption(kTemperatureEndgameId);
-  options->HideOption(kTemperatureWinpctCutoffId);
-  options->HideOption(kTemperatureVisitOffsetId);
-  options->HideOption(kMovesLeftConstantFactorId);
-  options->HideOption(kMovesLeftScaledFactorId);
-  options->HideOption(kMovesLeftQuadraticFactorId);
 }
 
 SearchParams::SearchParams(const OptionsDict& options)
