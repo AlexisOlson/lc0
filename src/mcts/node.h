@@ -40,6 +40,7 @@
 #include "chess/callbacks.h"
 #include "chess/position.h"
 #include "utils/mutex.h"
+#include "utils/fastmath.h"
 
 namespace lczero {
 
