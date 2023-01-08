@@ -59,6 +59,17 @@ const OptionId SearchParams::kMiniBatchSizeId{
     "How many positions the engine tries to batch together for parallel NN "
     "computation. Larger batches may reduce strength a bit, especially with a "
     "small number of playouts."};
+ const OptionId SearchParams::kPolicyFactorId{
+    "policy-factor", "PolicyFactor",
+    "Decides how fast Policies will increase with number of node visits. "
+    "Using CPuctFactor = 0 and CPuctFactorAtRoot = 0 is recommended."};
+const OptionId SearchParams::kPolicyFactorParentId{
+    "policy-factor-parent", "PolicyFactorParent",
+    "Decides how fast Policies will increase with number of parent node visits. "
+    "Using CPuctFactor = 0 and CPuctFactorAtRoot = 0 is recommended."};
+const OptionId SearchParams::kPolicyExponentId{
+    "policy-exponent", "PolicyExponent",
+    "Sets the rate Policies will increase to 1."};  
 const OptionId SearchParams::kCpuctId{
     "cpuct", "CPuct",
     "cpuct_init constant from \"UCT search\" algorithm. Higher values promote "
@@ -309,12 +320,17 @@ void SearchParams::Populate(OptionsParser* options) {
   // Here the uci optimized defaults" are set.
   // Many of them are overridden with training specific values in tournament.cc.
   options->Add<IntOption>(kMiniBatchSizeId, 1, 1024) = DEFAULT_MINIBATCH_SIZE;
+  options->Add<FloatOption>(kPolicyFactorId, 0.0f, 10.0f) = 0.024f;
+  options->Add<FloatOption>(kPolicyFactorParentId, 0.0f, 10.0f) = 0.00002f;
+  options->Add<FloatOption>(kPolicyExponentId, 0.0f, 10.0f) = 0.19f;
+  options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) =3.0f;
+  options->Add<FloatOption>(kCpuctAtRootId, 0.0f, 100.0f) = 3.0f;
   options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) = 1.745f;
   options->Add<FloatOption>(kCpuctAtRootId, 0.0f, 100.0f) = 1.745f;
   options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 38739.0f;
   options->Add<FloatOption>(kCpuctBaseAtRootId, 1.0f, 1000000000.0f) = 38739.0f;
-  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 3.894f;
-  options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 3.894f;
+  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 0.0f;
+  options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 0.0f;
   options->Add<BoolOption>(kRootHasOwnCpuctParamsId) = false;
   options->Add<BoolOption>(kTwoFoldDrawsId) = true;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
@@ -405,6 +421,9 @@ void SearchParams::Populate(OptionsParser* options) {
 
 SearchParams::SearchParams(const OptionsDict& options)
     : options_(options),
+      kPolicyFactor(options.Get<float>(kPolicyFactorId)),
+      kPolicyFactorParent(options.Get<float>(kPolicyFactorParentId)),
+      kPolicyExponent(options.Get<float>(kPolicyExponentId)),
       kCpuct(options.Get<float>(kCpuctId)),
       kCpuctAtRoot(options.Get<float>(
           options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpuctAtRootId
