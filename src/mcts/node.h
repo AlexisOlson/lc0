@@ -669,14 +669,29 @@ class EdgeAndNode {
   float GetP() const {
     return node_ != nullptr ? node_->GetP() : edge_->GetP();
   }
+  float GetPEffect(float policy_factor, float policy_factor_parent,
+                  float policy_exponent) const {
+    auto visits = GetN();
+    auto visits_parent = node_ ? node_->GetParent()->GetN() : 0;
+    auto psa = GetP();
+    return ( ( policy_factor > 0.0 ) || ( policy_factor_parent > 0.0 ) )
+      ? ( psa > 0.0f
+        ? 1.0f / ( 1.0f + (1.0f / psa - 1.0f) *
+            FastPow( 1.0f + policy_factor * visits +
+                          policy_factor_parent * visits_parent, -policy_exponent )
+          )
+        : 0.0f )
+      : psa ; }
   Move GetMove(bool flip = false) const {
     return edge_ ? edge_->GetMove(flip) : Move();
-  }
-
+  }  
+  
   // Returns U = numerator * p / N.
   // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
-  float GetU(float numerator) const {
-    return numerator * GetP() / (1 + GetNStarted());
+  float GetU(float numerator, float policy_factor, float policy_factor_parent,
+             float policy_exponent) const {
+    return numerator * GetPEffect(policy_factor, policy_factor_parent, policy_exponent)
+      / (1 + GetNStarted());
   }
 
   std::string DebugString() const;
