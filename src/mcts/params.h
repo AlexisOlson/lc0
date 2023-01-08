@@ -43,6 +43,9 @@ class SearchParams {
 
   // Parameter getters.
   uint32_t GetMiniBatchSize() const { return kMiniBatchSize; }
+  float GetPolicyFactor() const { return kPolicyFactor; }
+  float GetPolicyFactorParent() const { return kPolicyFactorParent; }
+  float GetPolicyExponent() const { return kPolicyExponent; }
   float GetCpuct(bool at_root) const { return at_root ? kCpuctAtRoot : kCpuct; }
   float GetCpuctBase(bool at_root) const {
     return at_root ? kCpuctBaseAtRoot : kCpuctBase;
@@ -137,6 +140,9 @@ class SearchParams {
 
   // Search parameter IDs.
   static const OptionId kMiniBatchSizeId;
+  static const OptionId kPolicyFactorId;
+  static const OptionId kPolicyFactorParentId;
+  static const OptionId kPolicyExponentId;
   static const OptionId kCpuctId;
   static const OptionId kCpuctAtRootId;
   static const OptionId kCpuctBaseId;
@@ -204,6 +210,9 @@ class SearchParams {
   // 2. Parameter has to stay the same during the search.
   // TODO(crem) Some of those parameters can be converted to be dynamic after
   //            trivial search optimizations.
+  const float kPolicyFactor;
+  const float kPolicyFactorParent;
+  const float kPolicyExponent;
   const float kCpuct;
   const float kCpuctAtRoot;
   const float kCpuctBase;
