@@ -382,16 +382,25 @@ std::vector<std::string> Search::GetVerboseStats(Node* node) const {
   const float cpuct = ComputeCpuct(params_, node->GetTotalVisits(), is_root);
   const float U_coeff =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+  const float policy_factor = params_.GetPolicyFactor();
+  const float policy_factor_parent = params_.GetPolicyFactorParent();
+  const float policy_exponent = params_.GetPolicyExponent();
   std::vector<EdgeAndNode> edges;
   for (const auto& edge : node->Edges()) edges.push_back(edge);
 
-  std::sort(edges.begin(), edges.end(),
-            [&fpu, &U_coeff, &draw_score](EdgeAndNode a, EdgeAndNode b) {
-              return std::forward_as_tuple(
-                         a.GetN(), a.GetQ(fpu, draw_score) + a.GetU(U_coeff)) <
-                     std::forward_as_tuple(
-                         b.GetN(), b.GetQ(fpu, draw_score) + b.GetU(U_coeff));
-            });
+  std::sort(
+      edges.begin(), edges.end(),
+      [&fpu, &U_coeff, &draw_score, &policy_factor,
+                &policy_factor_parent, &policy_exponent](EdgeAndNode a, EdgeAndNode b) {
+        return std::forward_as_tuple(
+                   a.GetN(),
+                   a.GetQ(fpu, draw_score) +
+                   a.GetU(U_coeff, policy_factor, policy_factor_parent, policy_exponent)) <
+               std::forward_as_tuple(
+                   b.GetN(),
+                   b.GetQ(fpu, draw_score) +
+                   b.GetU(U_coeff, policy_factor, policy_factor_parent, policy_exponent));
+      });
 
   auto print = [](auto* oss, auto pre, auto v, auto post, auto w, int p = 0) {
     *oss << pre << std::setw(w) << std::setprecision(p) << v << post;
@@ -463,8 +472,12 @@ std::vector<std::string> Search::GetVerboseStats(Node* node) const {
                edge.GetMove().as_nn_index(0), edge.GetN(), edge.GetNInFlight(),
                edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff,
+            params_.GetPolicyFactor(), params_.GetPolicyFactorParent(),
+            params_.GetPolicyExponent()), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff,
+            params_.GetPolicyFactor(), params_.GetPolicyFactorParent(),
+            params_.GetPolicyExponent()) + M, ") ", 8, 5);
     print_tail(&oss, edge.node());
     infos.emplace_back(oss.str());
   }
