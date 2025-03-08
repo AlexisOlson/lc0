@@ -225,6 +225,10 @@ const OptionId SearchParams::kTemperatureId{
     "Tau value from softmax formula for the first move. If equal to 0, the "
     "engine picks the best move to make. Larger values increase randomness "
     "while making the move."};
+const OptionId SearchParams::kScLimitId{
+    "search-contempt-node-limit", "ScLimit",
+    "UCT until this number of nodes"
+    "thompson sampling beyond this limit."};
 const OptionId SearchParams::kTempDecayMovesId{
     "tempdecay-moves", "TempDecayMoves",
     "Reduce temperature for every move after the first move, decreasing "
@@ -421,6 +425,11 @@ const OptionId SearchParams::kWDLBookExitBiasId{
     "The book exit bias used when measuring engine Elo. Value of startpos is "
     "around 0.2, value of 50% white win is 1. Only relevant if target draw "
     "rate is above 80%; ignored if WDLCalibrationElo is set."};
+const OptionId SearchParams::kSwapColorsId{
+    "swap-colors", "SwapColors",
+    "Simulates swapped colors when evaluating the neural network. Useful for "
+    "testing purposes and networks specifically trained for asymmetric cases "
+    "like piece odds play."};
 const OptionId SearchParams::kNpsLimitId{
     "nps-limit", "NodesPerSecondLimit",
     "An option to specify an upper limit to the nodes per second searched. The "
@@ -495,6 +504,7 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<BoolOption>(kRootHasOwnCpuctParamsId) = false;
   options->Add<BoolOption>(kTwoFoldDrawsId) = true;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
+  options->Add<IntOption>(kScLimitId, 1, 1000000000) = 1000000000;
   options->Add<IntOption>(kTempDecayMovesId, 0, 640) = 0;
   options->Add<IntOption>(kTempDecayDelayMovesId, 0, 100) = 0;
   options->Add<IntOption>(kTemperatureCutoffMoveId, 0, 1000) = 0;
@@ -561,6 +571,7 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kWDLDrawRateTargetId, 0.0f, 0.999f) = 0.0f;
   options->Add<FloatOption>(kWDLDrawRateReferenceId, 0.001f, 0.999f) = 0.5f;
   options->Add<FloatOption>(kWDLBookExitBiasId, -2.0f, 2.0f) = 0.65f;
+  options->Add<BoolOption>(kSwapColorsId) = false;
   options->Add<FloatOption>(kNpsLimitId, 0.0f, 1e6f) = 0.0f;
   options->Add<IntOption>(kSolidTreeThresholdId, 1, 2000000000) = 100;
   options->Add<IntOption>(kTaskWorkersPerSearchWorkerId, -1, 128) = -1;
@@ -597,6 +608,7 @@ void SearchParams::Populate(OptionsParser* options) {
   options->HideOption(kWDLMaxSId);
   options->HideOption(kWDLDrawRateTargetId);
   options->HideOption(kWDLBookExitBiasId);
+  options->HideOption(kSwapColorsId);
 }
 
 SearchParams::SearchParams(const OptionsDict& options)
@@ -664,6 +676,7 @@ SearchParams::SearchParams(const OptionsDict& options)
                     options.Get<float>(kWDLContemptAttenuationId))),
       kWDLMaxS(options.Get<float>(kWDLMaxSId)),
       kWDLEvalObjectivity(options.Get<float>(kWDLEvalObjectivityId)),
+      kSwapColors(options.Get<bool>(kSwapColorsId)),
       kMaxOutOfOrderEvalsFactor(
           options.Get<float>(kMaxOutOfOrderEvalsFactorId)),
       kNpsLimit(options.Get<float>(kNpsLimitId)),

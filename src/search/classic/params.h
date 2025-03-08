@@ -68,6 +68,7 @@ class SearchParams {
   }
   bool GetTwoFoldDraws() const { return kTwoFoldDraws; }
   float GetTemperature() const { return options_.Get<float>(kTemperatureId); }
+  int GetScLimit() const { return options_.Get<int>(kScLimitId); }
   float GetTemperatureVisitOffset() const {
     return options_.Get<float>(kTemperatureVisitOffsetId);
   }
@@ -130,6 +131,7 @@ class SearchParams {
   float GetWDLRescaleDiff() const { return kWDLRescaleParams.diff; }
   float GetWDLMaxS() const { return kWDLMaxS; }
   float GetWDLEvalObjectivity() const { return kWDLEvalObjectivity; }
+  bool GetSwapColors() const { return kSwapColors; }
   float GetMaxOutOfOrderEvalsFactor() const {
     return kMaxOutOfOrderEvalsFactor;
   }
@@ -176,6 +178,7 @@ class SearchParams {
   static const OptionId kRootHasOwnCpuctParamsId;
   static const OptionId kTwoFoldDrawsId;
   static const OptionId kTemperatureId;
+  static const OptionId kScLimitId;
   static const OptionId kTempDecayMovesId;
   static const OptionId kTempDecayDelayMovesId;
   static const OptionId kTemperatureCutoffMoveId;
@@ -218,6 +221,7 @@ class SearchParams {
   static const OptionId kWDLDrawRateTargetId;
   static const OptionId kWDLDrawRateReferenceId;
   static const OptionId kWDLBookExitBiasId;
+  static const OptionId kSwapColorsId;
   static const OptionId kMaxOutOfOrderEvalsFactorId;
   static const OptionId kNpsLimitId;
   static const OptionId kSolidTreeThresholdId;
@@ -278,6 +282,7 @@ class SearchParams {
   const WDLRescaleParams kWDLRescaleParams;
   const float kWDLMaxS;
   const float kWDLEvalObjectivity;
+  const bool kSwapColors;
   const float kMaxOutOfOrderEvalsFactor;
   const float kNpsLimit;
   const int kSolidTreeThreshold;
