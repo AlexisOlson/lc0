@@ -33,11 +33,11 @@
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <string_view> // Added
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <cctype>      // Added for std::isspace
+#include <cctype>
 
 #include "utils/exception.h"
 #include "utils/logging.h"
@@ -72,10 +72,7 @@ const std::unordered_map<std::string, std::unordered_set<std::string>>
         {{"fen"}, {}},
 };
 
-// Helper function to find a keyword, ensuring it's a whole word.
-// Searches for keyword ensuring it's bounded by spaces or string boundaries.
-// Returns the starting position of the keyword itself, or string_view::npos.
-// If find_last is true, it finds the rightmost valid occurrence.
+
 size_t FindBoundedKeywordOccurrence(std::string_view text, std::string_view keyword,
                                    size_t search_start_pos = 0, bool find_last = false) {
     size_t best_pos = std::string_view::npos;
@@ -83,25 +80,15 @@ size_t FindBoundedKeywordOccurrence(std::string_view text, std::string_view keyw
     if (find_last) {
         for (size_t i = text.length(); i > search_start_pos; --i) {
             size_t current_scan_pos = i - 1;
-            if (current_scan_pos < keyword.length() -1 ) break; 
-            // Adjust scan position if keyword would overflow
+            if (current_scan_pos < keyword.length() -1 ) break;
             if (text.length() - current_scan_pos < keyword.length()) {
-                 if (keyword.length() > text.length()) continue; // should not happen if current_scan_pos is valid
+                 if (keyword.length() > text.length()) continue;
                  current_scan_pos = text.length() - keyword.length();
             }
 
 
             size_t pos = text.rfind(keyword, current_scan_pos);
             if (pos == std::string_view::npos || pos < search_start_pos) { 
-                // if pos < search_start_pos, it means rfind found something before our allowed window
-                // this can happen if keyword is part of another string.
-                // However, rfind(keyword, current_scan_pos) should find starting at or before current_scan_pos.
-                // If we are iterating i from text.length() down to search_start_pos,
-                // then pos should be <= i. If pos is found, it's a candidate.
-                // The main check is whether it's bounded.
-                // If text.rfind(keyword, i) is used, then i should be the end position of the match.
-                // Let's simplify: use text.rfind(keyword, pos_to_search_from_left_of)
-                // The loop itself handles finding the "last" one by iterating from right to left.
             }
              if (pos == std::string_view::npos) continue;
 
@@ -110,16 +97,13 @@ size_t FindBoundedKeywordOccurrence(std::string_view text, std::string_view keyw
             bool space_after = ((pos + keyword.length()) == text.length() || std::isspace(static_cast<unsigned char>(text[pos + keyword.length()])));
 
             if (space_before && space_after) {
-                 // Check if this is within our search_start_pos..i range if that's relevant
-                 // For this loop, any valid bounded keyword found is the rightmost so far.
-                 return pos; // Found the rightmost valid one meeting criteria.
+                 return pos;
             }
-            // To prevent finding the same invalid spot, search strictly to the left of 'pos'
-            if (pos == 0) break; // cannot search further left
-            i = pos; // next iteration i will be pos-1
+            if (pos == 0) break;
+            i = pos;
         }
-        return std::string_view::npos; // Not found or not bounded correctly
-    } else { // find_first
+        return std::string_view::npos;
+    } else {
         size_t current_search_offset = search_start_pos;
         while (current_search_offset < text.length()) {
             size_t pos = text.find(keyword, current_search_offset);
@@ -128,8 +112,8 @@ size_t FindBoundedKeywordOccurrence(std::string_view text, std::string_view keyw
             bool space_before = (pos == 0 || std::isspace(static_cast<unsigned char>(text[pos - 1])));
             bool space_after = ((pos + keyword.length()) == text.length() || std::isspace(static_cast<unsigned char>(text[pos + keyword.length()])));
             
-            if (space_before && space_after) return pos; // Found first bounded keyword
-            current_search_offset = pos + 1; // Start next search after this non-match's start
+            if (space_before && space_after) return pos;
+            current_search_offset = pos + 1;
         }
     }
     return std::string_view::npos;
@@ -167,7 +151,6 @@ std::unordered_map<std::string, std::string> ParseSetOption(
   }
   params["name"] = std::string(option_name_sv);
 
-  // Advance past the keyword "value" itself. The spaces around it are handled by Trim.
   command_args.remove_prefix(value_keyword_pos + kValueTok.length());
   command_args = utils::string::Trim(command_args);
 
@@ -177,11 +160,10 @@ std::unordered_map<std::string, std::string> ParseSetOption(
   if (context_keyword_pos != std::string_view::npos) {
     std::string_view option_value_sv = command_args.substr(0, context_keyword_pos);
     option_value_sv = utils::string::Trim(option_value_sv);
-    // Value assigned to params map later
 
     command_args.remove_prefix(context_keyword_pos + kContextTok.length());
     command_args = utils::string::Trim(command_args);
-    std::string_view option_context_sv = command_args; // The rest is context
+    std::string_view option_context_sv = command_args;
     
     if (option_context_sv.empty()) {
       throw Exception("Empty context for '" + params["name"] + "'");
@@ -189,7 +171,6 @@ std::unordered_map<std::string, std::string> ParseSetOption(
     params["context"] = std::string(option_context_sv);
     params["value"] = std::string(option_value_sv); 
   } else {
-    // No context keyword found, the rest is the value
     std::string_view option_value_sv = command_args;
     option_value_sv = utils::string::Trim(option_value_sv);
     params["value"] = std::string(option_value_sv);
@@ -212,9 +193,9 @@ ParseCommand(const std::string& line) {
   std::string_view line_sv = line;
   line_sv = utils::string::Trim(line_sv);
 
-  if (line_sv.empty()) return {}; // Empty line
+  if (line_sv.empty()) return {};
 
-  size_t space_pos = line_sv.find_first_of(" \t\n\r\f\v"); // Consider all UCI whitespace
+  size_t space_pos = line_sv.find_first_of(" \t\n\r\f\v");
   if (space_pos == std::string_view::npos) {
     cmd_name = std::string(line_sv);
     line_sv = ""; 
@@ -226,40 +207,29 @@ ParseCommand(const std::string& line) {
   
   const auto command_iter = kKnownCommands.find(cmd_name);
   if (command_iter == kKnownCommands.end()) {
-    if (cmd_name.empty() && line_sv.empty()) return {}; // Truly empty line after trim
+    if (cmd_name.empty() && line_sv.empty()) return {};
     throw Exception("Unknown command: '" + cmd_name + "' from line: '" + line + "'");
   }
 
   if (cmd_name == "setoption") {
-    // For setoption, the entire rest of line_sv is passed to ParseSetOption later.
     params["args_for_setoption"] = std::string(line_sv);
   } else {
-    // Original-style parsing logic for other commands using istringstream
-    // from the remaining part of line_sv.
     std::string* value_ptr = nullptr;
-    std::istringstream iss(std::string(line_sv)); // istringstream from remaining line_sv
+    std::istringstream iss(std::string(line_sv));
     std::string token;
     std::string accumulated_whitespace; 
 
     while (iss >> token) { // Tokenizes by whitespace
         auto param_keyword_iter = command_iter->second.find(token);
         if (param_keyword_iter == command_iter->second.end()) {
-            // Not a known parameter keyword for this command, so it's part of the current parameter's value
             if (!value_ptr) {
-                 // This case can happen if the command has no params defined in kKnownCommands
-                 // or if the line has trailing garbage after valid params.
-                 // Example: "go wtime 100 garbage" - "garbage" is unexpected.
-                 // Original code: throw Exception("Unexpected token: " + token);
-                 // Let's stick to original behavior for non-setoption commands.
                  throw Exception("Unexpected token: " + token + " in command " + cmd_name);
             }
             *value_ptr += accumulated_whitespace + token;
             accumulated_whitespace = " "; 
         } else {
-            // It's a known parameter keyword
             value_ptr = &params[token]; 
-            *value_ptr = ""; // Initialize/clear value. If it's a flag, it remains empty.
-                             // If values follow, they'll be appended.
+            *value_ptr = "";
             accumulated_whitespace = ""; 
         }
     }
@@ -321,17 +291,13 @@ bool UciLoop::DispatchCommand(
     engine_->EnsureReady();
     uci_responder_->SendRawResponse("readyok");
   } else if (command == "setoption") {
-    // For "setoption", params now contains "args_for_setoption" with the full argument string.
-    // We need to call ParseSetOption with that string.
     std::string setoption_args_str = GetOrEmpty(params, "args_for_setoption");
-    // The key "args_for_setoption" is only present if command was "setoption" in ParseCommand.
-    // No need to check GetOrEmpty result if logic is correct.
     
     auto parsed_setoption_params = ParseSetOption(setoption_args_str);
     
     options_->SetUciOption(
-        parsed_setoption_params.at("name"), // .at() will throw if "name" is missing (should be caught by ParseSetOption)
-        parsed_setoption_params.at("value"),// .at() will throw if "value" is missing (should be caught by ParseSetOption)
+        parsed_setoption_params.at("name"),
+        parsed_setoption_params.at("value"),
         parsed_setoption_params.count("context") ? parsed_setoption_params.at("context") : "");
   } else if (command == "ucinewgame") {
     engine_->NewGame();
@@ -392,7 +358,6 @@ bool UciLoop::DispatchCommand(
 
 bool UciLoop::ProcessLine(const std::string& line) {
   auto command = ParseCommand(line);
-  // Ignore empty line.
   if (command.first.empty()) return true;
   return DispatchCommand(command.first, command.second);
 }
