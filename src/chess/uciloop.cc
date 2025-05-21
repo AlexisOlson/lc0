@@ -29,12 +29,14 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <iostream>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 #include "utils/exception.h"
 #include "utils/logging.h"
@@ -69,14 +71,13 @@ const std::unordered_map<std::string, std::unordered_set<std::string>>
         {{"fen"}, {}},
 };
 
-// ─────────────────────────────── setoption helper
-constexpr std::string_view kNameTok    = "name ";
-constexpr std::string_view kValueTok   = " value ";
-constexpr std::string_view kContextTok = " context ";
-
 std::unordered_map<std::string, std::string>
 ParseSetOption(std::string_view rest) {
   rest = utils::string::Trim(rest);
+
+  constexpr std::string_view kNameTok    = "name ";
+  constexpr std::string_view kValueTok   = " value ";
+  constexpr std::string_view kContextTok = " context ";
 
   if (!rest.starts_with(kNameTok))
     throw Exception("Malformed setoption (expected \"name\")");
@@ -86,20 +87,20 @@ ParseSetOption(std::string_view rest) {
     throw Exception("Malformed setoption (missing \"value\")");
 
   const size_t c_pos = rest.rfind(kContextTok);
-  const bool   has_ctx = c_pos != std::string_view::npos && c_pos > v_pos;
+  const bool has_ctx = c_pos != std::string_view::npos && c_pos > v_pos;
 
   auto trim = [](std::string_view sv) { return utils::string::Trim(sv); };
 
   std::unordered_map<std::string, std::string> p;
 
-  // -------- name -----------------------------------------------------------
+  // name
   const size_t name_start = kNameTok.size();
   p["name"] = std::string(trim(rest.substr(name_start,
                                            v_pos - name_start)));
   if (p["name"].empty())
     throw Exception("Empty option name");
 
-  // -------- value ----------------------------------------------------------
+  // value
   const size_t val_start = v_pos + kValueTok.size();
   p["value"] = std::string(trim(
       rest.substr(val_start,
@@ -108,7 +109,7 @@ ParseSetOption(std::string_view rest) {
   if (p["value"].empty())
     throw Exception("Empty value for option \"" + p["name"] + "\"");
 
-  // -------- context (optional) --------------------------------------------
+  // context (optional)
   if (has_ctx) {
     const size_t ctx_start = c_pos + kContextTok.size();
     p["context"] = std::string(trim(rest.substr(ctx_start)));
@@ -125,7 +126,7 @@ ParseCommand(const std::string& line) {
 
   std::istringstream iss(line);
   std::string token;
-  iss >> token >> std::was;
+  iss >> token >> std::ws;
 
   // If empty line, return empty command.
   if (token.empty()) return {};
@@ -137,8 +138,9 @@ ParseCommand(const std::string& line) {
   }
 
   const auto command = kKnownCommands.find(token);
-  if (command == kKnownCommands.end())
-    throw Exception("Unknown command: " + cmd);
+  if (command == kKnownCommands.end()) {
+    throw Exception("Unknown command: " + line);
+  }
 
   std::string whitespace;
   while (iss >> token) {
@@ -188,7 +190,6 @@ bool ContainsKey(const std::unordered_map<std::string, std::string>& params,
   return params.find(key) != params.end();
 }
 }  // namespace
-
 
 UciLoop::UciLoop(StringUciResponder* uci_responder, OptionsParser* options,
                  EngineControllerBase* engine)
