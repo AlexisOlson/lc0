@@ -162,6 +162,7 @@ common_files += [
   'src/neural/shared_params.cc',
   'src/neural/wrapper.cc',
   'src/search/classic/node.cc',
+  'src/search/common/temperature.cc',
   'src/syzygy/syzygy.cc',
   'src/trainingdata/reader.cc',
   'src/trainingdata/trainingdata.cc',
@@ -911,6 +912,11 @@ if get_option('gtest')
                'src/neural/memcache.cc', pb_files,
     include_directories: includes, link_with: lc0_lib, dependencies: [gtest, gmock]),
     args: '--gtest_output=xml:engine_test.xml', timeout: 90)
+
+  test('TemperatureTest',
+    executable('temperature_test', 'src/search/common/temperature_test.cc',
+    include_directories: includes, link_with: lc0_lib, dependencies: gtest
+  ), args: '--gtest_output=xml:temperature.xml', timeout: 90)
 endif
 
 
