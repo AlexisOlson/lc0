@@ -28,17 +28,15 @@ float EffectiveTau(int ply,
                    float endgame_temperature) {
   float temperature = initial_temperature;
   
-  // Convert ply to move number using the same formula as the original code
-  // The original used: moves = played_history_.Last().GetGamePly() / 2;
-  // And then checked: (moves + 1) >= cutoff_move
-  // We maintain exact same behavior but take ply as input
-  const int moves = ply / 2;
+  // Convert ply to move number as specified: (ply / 2) + 1
+  // This matches the logic from classic/search.cc lines 1068-1076
+  const int moves = (ply / 2) + 1;
 
-  // Apply temperature cutoff logic - same as original
-  if (cutoff_move && (moves + 1) >= cutoff_move) {
+  // Apply temperature cutoff logic
+  if (cutoff_move && moves >= cutoff_move) {
     temperature = endgame_temperature;
   } else if (temperature && decay_moves) {
-    // Apply temperature decay logic - same as original
+    // Apply temperature decay logic
     if (moves >= decay_delay_moves + decay_moves) {
       temperature = 0.0;
     } else if (moves >= decay_delay_moves) {

@@ -33,8 +33,10 @@ namespace lczero {
 //
 // @return: The effective temperature to use for move selection
 //
-// Note: This function maintains the exact same behavior as the original code in
-// classic/search.cc and dag_classic/search.cc, but centralizes the logic.
+// Note: This function converts ply to 1-based move number using (ply / 2) + 1
+// internally, which changes the semantics from the original 0-based calculation.
+// This provides more intuitive move numbering (move 1, 2, 3, ...) but will
+// affect temperature decay/cutoff timings compared to the original implementation.
 float EffectiveTau(int ply,
                    float initial_temperature,
                    int cutoff_move,
