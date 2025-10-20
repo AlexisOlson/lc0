@@ -93,6 +93,8 @@ class BaseSearchParams {
   }
   int GetCacheHistoryLength() const { return kCacheHistoryLength; }
   float GetPolicySoftmaxTemp() const { return kPolicySoftmaxTemp; }
+  float GetPolicyDecayExponent() const { return kPolicyDecayExponent; }
+  float GetPolicyDecayFactor() const { return kPolicyDecayFactor; }
   int GetMaxCollisionEvents() const { return kMaxCollisionEvents; }
   int GetMaxCollisionVisits() const { return kMaxCollisionVisits; }
   bool GetOutOfOrderEval() const { return kOutOfOrderEval; }
@@ -163,6 +165,14 @@ class BaseSearchParams {
     return kGarbageCollectionDelay;
   }
 
+  int GetMaxPrefetchBatch() const {
+    return options_.Get<int>(kMaxPrefetchBatchId);
+  }
+
+  int GetSolidTreeThreshold() const {
+    return options_.Get<int>(kSolidTreeThresholdId);
+  }
+
   // Search parameter IDs.
   static const OptionId kMiniBatchSizeId;
   static const OptionId kCpuctId;
@@ -189,6 +199,9 @@ class BaseSearchParams {
   static const OptionId kFpuStrategyAtRootId;
   static const OptionId kFpuValueAtRootId;
   static const OptionId kCacheHistoryLengthId;
+  static const OptionId kPolicySoftmaxTempId;
+  static const OptionId kPolicyDecayExponentId;
+  static const OptionId kPolicyDecayFactorId;
   static const OptionId kMaxCollisionEventsId;
   static const OptionId kMaxCollisionVisitsId;
   static const OptionId kOutOfOrderEvalId;
@@ -197,14 +210,14 @@ class BaseSearchParams {
   static const OptionId kMultiPvId;
   static const OptionId kPerPvCountersId;
   static const OptionId kScoreTypeId;
+  static const OptionId kMovesLeftSlopeId;
+  static const OptionId kMaxConcurrentSearchersId;
+  static const OptionId kDrawScoreId;
   static const OptionId kMovesLeftMaxEffectId;
   static const OptionId kMovesLeftThresholdId;
   static const OptionId kMovesLeftConstantFactorId;
   static const OptionId kMovesLeftScaledFactorId;
   static const OptionId kMovesLeftQuadraticFactorId;
-  static const OptionId kMovesLeftSlopeId;
-  static const OptionId kMaxConcurrentSearchersId;
-  static const OptionId kDrawScoreId;
   static const OptionId kContemptModeId;
   static const OptionId kContemptId;
   static const OptionId kContemptMaxValueId;
@@ -231,6 +244,8 @@ class BaseSearchParams {
   static const OptionId kUCIRatingAdvId;
   static const OptionId kSearchSpinBackoffId;
   static const OptionId kGarbageCollectionDelayId;
+  static const OptionId kMaxPrefetchBatchId;
+  static const OptionId kSolidTreeThresholdId;
 
  protected:
   const OptionsDict& options_;
@@ -257,6 +272,8 @@ class BaseSearchParams {
   const float kFpuValueAtRoot;
   const int kCacheHistoryLength;
   const float kPolicySoftmaxTemp;
+  const float kPolicyDecayExponent;
+  const float kPolicyDecayFactor;
   const int kMaxCollisionEvents;
   const int kMaxCollisionVisits;
   const bool kOutOfOrderEval;
@@ -299,19 +316,6 @@ class SearchParams : public BaseSearchParams {
 
   // Populates UciOptions with search parameters.
   static void Populate(OptionsParser* options);
-
-  // Parameter getters.
-  int GetMaxPrefetchBatch() const {
-    return options_.Get<int>(kMaxPrefetchBatchId);
-  }
-  int GetSolidTreeThreshold() const { return kSolidTreeThreshold; }
-
-  // Search parameter IDs.
-  static const OptionId kMaxPrefetchBatchId;
-  static const OptionId kSolidTreeThresholdId;
-
- private:
-  const int kSolidTreeThreshold;
 };
 }  // namespace classic
 }  // namespace lczero

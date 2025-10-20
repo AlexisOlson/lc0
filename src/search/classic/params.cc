@@ -330,6 +330,15 @@ const OptionId BaseSearchParams::kCacheHistoryLengthId{
     "this value is less than history that NN uses to eval a position, it's "
     "possble that the search will use eval of the same position with different "
     "history taken from cache."};
+const OptionId BaseSearchParams::kPolicySoftmaxTempId{
+    "policy-softmax-temp", "PolicyTemperature",
+    "Policy softmax temperature. Higher values make priors of move candidates closer to each other, widening the search."};
+const OptionId BaseSearchParams::kPolicyDecayExponentId{
+    "policy-decay-exponent", "PolicyDecayExponent",
+    "Policy decay exponent. Sets the exponent of the visit based policy decay term."};
+const OptionId BaseSearchParams::kPolicyDecayFactorId{
+    "policy-decay-factor", "PolicyDecayFactor",
+    "Policy decay factor. Scales the visit count for the visit based policy decay term."};
 const OptionId BaseSearchParams::kMaxCollisionVisitsId{
     "max-collision-visits", "MaxCollisionVisits",
     "Total allowed node collision visits, per batch."};
@@ -530,12 +539,12 @@ const OptionId BaseSearchParams::kGarbageCollectionDelayId{
     "The percentage of expected move time until garbage collection start. "
     "Delay lets search find transpositions to freed search tree branches."};
 
-const OptionId SearchParams::kMaxPrefetchBatchId{
+const OptionId BaseSearchParams::kMaxPrefetchBatchId{
     "max-prefetch", "MaxPrefetch",
     "When the engine cannot gather a large enough batch for immediate use, try "
     "to prefetch up to X positions which are likely to be useful soon, and put "
     "them into cache."};
-const OptionId SearchParams::kSolidTreeThresholdId{
+const OptionId BaseSearchParams::kSolidTreeThresholdId{
     "solid-tree-threshold", "SolidTreeThreshold",
     "Only nodes with at least this number of visits will be considered for "
     "solidification for improved cache locality."};
@@ -571,6 +580,10 @@ void BaseSearchParams::Populate(OptionsParser* options) {
   options->Add<ChoiceOption>(kFpuStrategyAtRootId, fpu_strategy) = "same";
   options->Add<FloatOption>(kFpuValueAtRootId, -100.0f, 100.0f) = 1.0f;
   options->Add<IntOption>(kCacheHistoryLengthId, 0, 7) = 0;
+    options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 1.359f;
+    options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 1.359f;
+    options->Add<FloatOption>(kPolicyDecayExponentId, 0.0f, 10.0f) = 0.5f;
+    options->Add<FloatOption>(kPolicyDecayFactorId, 0.0f, 1.0f) = 0.0001f;
   options->Add<IntOption>(kMaxCollisionEventsId, 1, 65536) = 917;
   options->Add<IntOption>(kMaxCollisionVisitsId, 1, 100000000) = 80000;
   options->Add<IntOption>(kMaxCollisionVisitsScalingStartId, 1, 100000) = 28;
@@ -666,8 +679,9 @@ BaseSearchParams::BaseSearchParams(const OptionsDict& options)
                           ? kFpuValue
                           : options.Get<float>(kFpuValueAtRootId)),
       kCacheHistoryLength(options.Get<int>(kCacheHistoryLengthId)),
-      kPolicySoftmaxTemp(
-          options.Get<float>(SharedBackendParams::kPolicySoftmaxTemp)),
+    kPolicySoftmaxTemp(options.Get<float>(kPolicySoftmaxTempId)),
+    kPolicyDecayExponent(options.Get<float>(kPolicyDecayExponentId)),
+    kPolicyDecayFactor(options.Get<float>(kPolicyDecayFactorId)),
       kMaxCollisionEvents(options.Get<int>(kMaxCollisionEventsId)),
       kMaxCollisionVisits(options.Get<int>(kMaxCollisionVisitsId)),
       kOutOfOrderEval(options.Get<bool>(kOutOfOrderEvalId)),
@@ -728,7 +742,6 @@ BaseSearchParams::BaseSearchParams(const OptionsDict& options)
       kGarbageCollectionDelay(options_.Get<float>(kGarbageCollectionDelayId)) {}
 
 SearchParams::SearchParams(const OptionsDict& options)
-    : BaseSearchParams(options),
-      kSolidTreeThreshold(options.Get<int>(kSolidTreeThresholdId)) {}
+    : BaseSearchParams(options) {}
 }  // namespace classic
 }  // namespace lczero
