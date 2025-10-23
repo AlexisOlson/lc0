@@ -96,6 +96,15 @@ class Edge {
   float GetP() const;
   void SetP(float val);
 
+  float GetVirtualN() const { return virtual_n_; }
+  float GetVirtualWL() const { return virtual_wl_; }
+  float GetVirtualD() const { return virtual_d_; }
+  void SetVirtualStats(float n0, float wl0, float d0) {
+    virtual_n_ = n0;
+    virtual_wl_ = wl0;
+    virtual_d_ = d0;
+  }
+
   // Debug information about the edge.
   std::string DebugString() const;
 
@@ -108,6 +117,11 @@ class Edge {
   // Probability that this move will be made, from the policy head of the neural
   // network; compressed to a 16 bit format (5 bits exp, 11 bits significand).
   uint16_t p_ = 0;
+
+  // Virtual statistics applied once during expansion.
+  float virtual_n_ = 0.0f;
+  float virtual_wl_ = 0.0f;
+  float virtual_d_ = 0.0f;
   friend class Node;
 };
 
@@ -373,13 +387,56 @@ class EdgeAndNode {
 
   // Proxy functions for easier access to node/edge.
   float GetQ(float default_q, float draw_score) const {
-    return (node_ && node_->GetN() > 0) ? node_->GetQ(draw_score) : default_q;
+    const float virtual_n = edge_ ? edge_->GetVirtualN() : 0.0f;
+    const float virtual_wl = edge_ ? edge_->GetVirtualWL() : 0.0f;
+    const float virtual_d = edge_ ? edge_->GetVirtualD() : 0.0f;
+    if (node_ && node_->GetN() > 0) {
+      const float real_n = node_->GetN();
+      const float total_n = real_n + virtual_n;
+      if (total_n > 0.0f) {
+        const float wl_sum = node_->GetWL() * real_n + virtual_wl;
+        const float d_sum = node_->GetD() * real_n + virtual_d;
+        const float avg_wl = wl_sum / total_n;
+        const float avg_d = d_sum / total_n;
+        return avg_wl + draw_score * avg_d;
+      }
+    }
+    if (virtual_n > 0.0f) {
+      const float avg_wl = virtual_wl / virtual_n;
+      const float avg_d = virtual_d / virtual_n;
+      return avg_wl + draw_score * avg_d;
+    }
+    return default_q;
   }
   float GetWL(float default_wl) const {
-    return (node_ && node_->GetN() > 0) ? node_->GetWL() : default_wl;
+    const float virtual_n = edge_ ? edge_->GetVirtualN() : 0.0f;
+    const float virtual_wl = edge_ ? edge_->GetVirtualWL() : 0.0f;
+    if (node_ && node_->GetN() > 0) {
+      const float real_n = node_->GetN();
+      const float total_n = real_n + virtual_n;
+      if (total_n > 0.0f) {
+        return (node_->GetWL() * real_n + virtual_wl) / total_n;
+      }
+    }
+    if (virtual_n > 0.0f) {
+      return virtual_wl / virtual_n;
+    }
+    return default_wl;
   }
   float GetD(float default_d) const {
-    return (node_ && node_->GetN() > 0) ? node_->GetD() : default_d;
+    const float virtual_n = edge_ ? edge_->GetVirtualN() : 0.0f;
+    const float virtual_d = edge_ ? edge_->GetVirtualD() : 0.0f;
+    if (node_ && node_->GetN() > 0) {
+      const float real_n = node_->GetN();
+      const float total_n = real_n + virtual_n;
+      if (total_n > 0.0f) {
+        return (node_->GetD() * real_n + virtual_d) / total_n;
+      }
+    }
+    if (virtual_n > 0.0f) {
+      return virtual_d / virtual_n;
+    }
+    return default_d;
   }
   float GetM(float default_m) const {
     return (node_ && node_->GetN() > 0) ? node_->GetM() : default_m;
@@ -406,8 +463,13 @@ class EdgeAndNode {
   // Returns U = numerator * p / N.
   // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
   float GetU(float numerator) const {
-    return numerator * GetP() / (1 + GetNStarted());
+    const float virtual_n = edge_ ? edge_->GetVirtualN() : 0.0f;
+    return numerator * GetP() / (1.0f + GetNStarted() + virtual_n);
   }
+
+  float GetVirtualN() const { return edge_ ? edge_->GetVirtualN() : 0.0f; }
+  float GetVirtualWL() const { return edge_ ? edge_->GetVirtualWL() : 0.0f; }
+  float GetVirtualD() const { return edge_ ? edge_->GetVirtualD() : 0.0f; }
 
   std::string DebugString() const;
 

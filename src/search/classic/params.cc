@@ -208,6 +208,9 @@ const OptionId BaseSearchParams::kCpuctFactorAtRootId{
      .uci_option = "CPuctFactorAtRoot",
      .help_text = "Multiplier for the cpuct growth formula at root.",
      .visibility = OptionId::kProOnly}};
+const OptionId BaseSearchParams::kNodePriorAlphaId{
+    "node-prior-alpha", "NodePriorAlpha",
+    "Strength multiplier for virtual node priors (K = alpha * legal moves)."};
 // Remove this option after 0.25 has been made mandatory in training and the
 // training server stops sending it.
 const OptionId BaseSearchParams::kRootHasOwnCpuctParamsId{
@@ -550,6 +553,7 @@ void BaseSearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kCpuctBaseAtRootId, 1.0f, 1000000000.0f) = 38739.0f;
   options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 3.894f;
   options->Add<FloatOption>(kCpuctFactorAtRootId, 0.0f, 1000.0f) = 3.894f;
+  options->Add<FloatOption>(kNodePriorAlphaId, 0.0f, 1000.0f) = 0.0f;
   options->Add<BoolOption>(kRootHasOwnCpuctParamsId) = false;
   options->Add<BoolOption>(kTwoFoldDrawsId) = true;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
@@ -653,6 +657,7 @@ BaseSearchParams::BaseSearchParams(const OptionsDict& options)
       kCpuctFactorAtRoot(options.Get<float>(
           options.Get<bool>(kRootHasOwnCpuctParamsId) ? kCpuctFactorAtRootId
                                                       : kCpuctFactorId)),
+      kNodePriorAlpha(options.Get<float>(kNodePriorAlphaId)),
       kTwoFoldDraws(options.Get<bool>(kTwoFoldDrawsId)),
       kNoiseEpsilon(options.Get<float>(kNoiseEpsilonId)),
       kNoiseAlpha(options.Get<float>(kNoiseAlphaId)),
