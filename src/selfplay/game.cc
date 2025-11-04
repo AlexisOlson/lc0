@@ -149,10 +149,6 @@ void SelfPlayGame::Play(int white_threads, int black_threads, bool training,
 
     // If endgame, stop.
     if (game_result_ != GameResult::UNDECIDED) break;
-    if (tree_[0]->GetPositionHistory().Last().GetGamePly() >= 450) {
-      adjudicated_ = true;
-      break;
-    }
     // Initialize search.
     const int idx = blacks_move ? 1 : 0;
     if (!options_[idx].uci_options->Get<bool>(kReuseTreeId)) {
