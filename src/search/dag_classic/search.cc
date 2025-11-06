@@ -521,11 +521,12 @@ std::vector<std::string> Search::GetVerboseStats(
   const float cpuct = ComputeCpuct(params_, node->GetTotalVisits(), is_root);
   const float U_coeff =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+  const float policy_decay_scale = params_.GetPolicyDecayScale();
   std::vector<std::tuple<uint32_t, float, EdgeAndNode>> edges;
   edges.reserve(node->GetNumEdges());
   for (const auto& edge : node->Edges()) {
     edges.emplace_back(edge.GetN(),
-                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff),
+                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale),
                        edge);
   }
   std::sort(edges.begin(), edges.end());
@@ -617,8 +618,8 @@ std::vector<std::string> Search::GetVerboseStats(
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
                edge.GetNInFlight(), edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale) + M, ") ", 8, 5);
     print_tail(&oss, edge.node(), true);
     infos.emplace_back(oss.str());
   }

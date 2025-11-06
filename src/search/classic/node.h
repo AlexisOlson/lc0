@@ -39,6 +39,7 @@
 #include "chess/position.h"
 #include "neural/encoder.h"
 #include "proto/net.pb.h"
+#include "utils/fastmath.h"
 #include "utils/mutex.h"
 
 namespace lczero {
@@ -403,10 +404,20 @@ class EdgeAndNode {
     return edge_ ? edge_->GetMove(flip) : Move();
   }
 
-  // Returns U = numerator * p / N.
+  // Returns U = numerator * p_eff / N.
   // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
-  float GetU(float numerator) const {
-    return numerator * GetP() / (1 + GetNStarted());
+  // policy_decay_scale controls positive policy decay. When scale=0, no decay (p_eff = p).
+  float GetU(float numerator, float policy_decay_scale = 0.0f) const {
+    float p = GetP();
+    if (policy_decay_scale > 0.0f) {
+      // Apply positive policy decay: p_eff = 1 / (1 + odds * scaling)
+      // where odds = 1/p - 1 and scaling = FastInvSqrt(1 + N/scale)
+      float n_child = static_cast<float>(GetN());
+      float scaling = FastInvSqrt(1.0f + n_child / policy_decay_scale);
+      float odds = 1.0f / p - 1.0f;
+      p = 1.0f / (1.0f + odds * scaling);
+    }
+    return numerator * p / (1 + GetNStarted());
   }
 
   std::string DebugString() const;

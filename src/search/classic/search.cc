@@ -465,11 +465,12 @@ std::vector<std::string> Search::GetVerboseStats(const Node* node) const {
   const float cpuct = ComputeCpuct(params_, node->GetN(), is_root);
   const float U_coeff =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+  const float policy_decay_scale = params_.GetPolicyDecayScale();
   std::vector<std::tuple<uint32_t, float, EdgeAndNode>> edges;
   edges.reserve(node->GetNumEdges());
   for (const auto& edge : node->Edges()) {
     edges.emplace_back(edge.GetN(),
-                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff),
+                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale),
                        edge);
   }
   std::sort(edges.begin(), edges.end());
@@ -555,8 +556,8 @@ std::vector<std::string> Search::GetVerboseStats(const Node* node) const {
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
                edge.GetNInFlight(), edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale) + M, ") ", 8, 5);
     print_tail(&oss, edge.node());
     infos.emplace_back(oss.str());
   }
@@ -2074,11 +2075,12 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
   const float fpu =
       GetFpu(params_, node, node == search_->root_node_, draw_score);
+  const float policy_decay_scale = params_.GetPolicyDecayScale();
   for (auto& edge : node->Edges()) {
     if (edge.GetP() == 0.0f) continue;
     // Flip the sign of a score to be able to easily sort.
     // TODO: should this use logit_q if set??
-    scores.emplace_back(-edge.GetU(puct_mult) - edge.GetQ(fpu, draw_score),
+    scores.emplace_back(-edge.GetU(puct_mult, policy_decay_scale) - edge.GetQ(fpu, draw_score),
                         edge);
   }
 

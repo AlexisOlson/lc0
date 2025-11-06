@@ -104,4 +104,17 @@ inline float FastSign(const float a) {
 #endif
 }
 
+// Fast approximate 1/sqrt(x) using bit manipulation.
+// Based on the classic Quake III algorithm.
+inline float FastInvSqrt(const float a) {
+  float halfx = 0.5f * a;
+  uint32_t i;
+  std::memcpy(&i, &a, sizeof(float));
+  i = 0x5f3759df - (i >> 1);  // Magic constant
+  float y;
+  std::memcpy(&y, &i, sizeof(float));
+  y = y * (1.5f - halfx * y * y);  // Newton iteration
+  return y;
+}
+
 }  // namespace lczero

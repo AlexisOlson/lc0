@@ -130,6 +130,7 @@ class BaseSearchParams {
     return kMaxOutOfOrderEvalsFactor;
   }
   float GetNpsLimit() const { return kNpsLimit; }
+  float GetPolicyDecayScale() const { return kPolicyDecayScale; }
 
   int GetTaskWorkersPerSearchWorker() const {
     return kTaskWorkersPerSearchWorker;
@@ -231,6 +232,7 @@ class BaseSearchParams {
   static const OptionId kUCIRatingAdvId;
   static const OptionId kSearchSpinBackoffId;
   static const OptionId kGarbageCollectionDelayId;
+  static const OptionId kPolicyDecayScaleId;
 
  protected:
   const OptionsDict& options_;
@@ -290,6 +292,7 @@ class BaseSearchParams {
   const float kMaxCollisionVisitsScalingPower;
   const bool kSearchSpinBackoff;
   const float kGarbageCollectionDelay;
+  const float kPolicyDecayScale;
 };
 
 class SearchParams : public BaseSearchParams {
