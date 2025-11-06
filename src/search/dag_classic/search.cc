@@ -40,6 +40,7 @@
 #include <thread>
 
 #include "search/dag_classic/node.h"
+#include "search/common/temperature.h"
 #include "utils/fastmath.h"
 #include "utils/random.h"
 #include "utils/spinhelper.h"
@@ -748,27 +749,13 @@ void Search::EnsureBestMoveKnown() REQUIRES(nodes_mutex_)
   if (root_node_->GetN() == 0) return;
   if (!root_node_->HasChildren()) return;
 
-  float temperature = params_.GetTemperature();
-  const int cutoff_move = params_.GetTemperatureCutoffMove();
-  const int decay_delay_moves = params_.GetTempDecayDelayMoves();
-  const int decay_moves = params_.GetTempDecayMoves();
-  const int moves = played_history_.Last().GetGamePly() / 2;
-
-  if (cutoff_move && (moves + 1) >= cutoff_move) {
-    temperature = params_.GetTemperatureEndgame();
-  } else if (temperature && decay_moves) {
-    if (moves >= decay_delay_moves + decay_moves) {
-      temperature = 0.0;
-    } else if (moves >= decay_delay_moves) {
-      temperature *=
-          static_cast<float>(decay_delay_moves + decay_moves - moves) /
-          decay_moves;
-    }
-    // don't allow temperature to decay below endgame temperature
-    if (temperature < params_.GetTemperatureEndgame()) {
-      temperature = params_.GetTemperatureEndgame();
-    }
-  }
+  float temperature = EffectiveTau(
+      played_history_.Last().GetGamePly(),
+      params_.GetTemperature(),
+      params_.GetTemperatureCutoffMove(),
+      params_.GetTempDecayDelayMoves(),
+      params_.GetTempDecayMoves(),
+      params_.GetTemperatureEndgame());
 
   auto bestmove_edge = temperature
                            ? GetBestRootChildWithTemperature(temperature)
