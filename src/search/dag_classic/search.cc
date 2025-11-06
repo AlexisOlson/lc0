@@ -1809,6 +1809,7 @@ void SearchWorker::PickNodesToExtendTask(
           ComputeCpuct(params_, node->GetTotalVisits(), is_root_node);
       const float puct_mult =
           cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
+      const float policy_decay_scale = params_.GetPolicyDecayScale();
       int cache_filled_idx = -1;
       while (cur_limit > 0) {
         // Perform UCT for current node.
@@ -1831,8 +1832,15 @@ void SearchWorker::PickNodesToExtendTask(
           int nstarted = current_nstarted[idx];
           const float util = current_util[idx];
           if (idx > cache_filled_idx) {
-            current_score[idx] =
-                cur_iters[idx].GetP() * puct_mult / (1 + nstarted) + util;
+            float p = cur_iters[idx].GetP();
+            if (policy_decay_scale > 0.0f) {
+              // Apply positive policy decay
+              float n_child = static_cast<float>(cur_iters[idx].GetN());
+              float scaling = FastInvSqrt(1.0f + n_child / policy_decay_scale);
+              float odds = 1.0f / p - 1.0f;
+              p = 1.0f / (1.0f + odds * scaling);
+            }
+            current_score[idx] = p * puct_mult / (1 + nstarted) + util;
             cache_filled_idx++;
           }
           if (is_root_node) {
