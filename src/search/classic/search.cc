@@ -1735,12 +1735,9 @@ void SearchWorker::PickNodesToExtendTask(
           const float util = current_util[idx];
           if (idx > cache_filled_idx) {
             float p = current_pol[idx];
-            if (policy_decay_scale > 0.0f) {
-              // Apply positive policy decay
-              float n_child = static_cast<float>(cur_iters[idx].GetN());
-              float scaling = FastInvSqrt(1.0f + n_child / policy_decay_scale);
-              float odds = 1.0f / p - 1.0f;
-              p = 1.0f / (1.0f + odds * scaling);
+            if (policy_decay_scale > 0.0f && p > 0.0f) {
+              p = ApplyPolicyDecay(p, static_cast<float>(cur_iters[idx].GetN()),
+                                   policy_decay_scale);
             }
             current_score[idx] = p * puct_mult / (1 + nstarted) + util;
             cache_filled_idx++;

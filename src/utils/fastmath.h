@@ -106,6 +106,8 @@ inline float FastSign(const float a) {
 
 // Fast approximate 1/sqrt(x) using bit manipulation.
 // Based on the classic Quake III algorithm.
+// Expects positive input values. Does no range checking; produces undefined
+// behavior for zero, negative, or special values (NaN, infinity).
 inline float FastInvSqrt(const float a) {
   float halfx = 0.5f * a;
   uint32_t i;
@@ -115,6 +117,18 @@ inline float FastInvSqrt(const float a) {
   std::memcpy(&y, &i, sizeof(float));
   y = y * (1.5f - halfx * y * y);  // Newton iteration
   return y;
+}
+
+// Apply positive policy decay transformation.
+// Returns P_eff = 1 / (1 + odds * scaling) where:
+//   odds = 1/P - 1
+//   scaling = 1/sqrt(1 + N/scale)
+// When P=0 or scale=0, returns P unchanged.
+inline float ApplyPolicyDecay(float p, float n_child, float scale) {
+  if (p == 0.0f || scale == 0.0f) return p;
+  float scaling = FastInvSqrt(1.0f + n_child / scale);
+  float odds = 1.0f / p - 1.0f;
+  return 1.0f / (1.0f + odds * scaling);
 }
 
 }  // namespace lczero

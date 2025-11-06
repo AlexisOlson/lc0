@@ -409,13 +409,8 @@ class EdgeAndNode {
   // policy_decay_scale controls positive policy decay. When scale=0, no decay (p_eff = p).
   float GetU(float numerator, float policy_decay_scale = 0.0f) const {
     float p = GetP();
-    if (policy_decay_scale > 0.0f) {
-      // Apply positive policy decay: p_eff = 1 / (1 + odds * scaling)
-      // where odds = 1/p - 1 and scaling = FastInvSqrt(1 + N/scale)
-      float n_child = static_cast<float>(GetN());
-      float scaling = FastInvSqrt(1.0f + n_child / policy_decay_scale);
-      float odds = 1.0f / p - 1.0f;
-      p = 1.0f / (1.0f + odds * scaling);
+    if (policy_decay_scale > 0.0f && p > 0.0f) {
+      p = ApplyPolicyDecay(p, static_cast<float>(GetN()), policy_decay_scale);
     }
     return numerator * p / (1 + GetNStarted());
   }
