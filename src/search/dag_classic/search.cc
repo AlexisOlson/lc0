@@ -522,11 +522,12 @@ std::vector<std::string> Search::GetVerboseStats(
   const float U_coeff =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
   const float policy_decay_scale = params_.GetPolicyDecayScale();
+  const float policy_decay_exponent = params_.GetPolicyDecayExponent();
   std::vector<std::tuple<uint32_t, float, EdgeAndNode>> edges;
   edges.reserve(node->GetNumEdges());
   for (const auto& edge : node->Edges()) {
     edges.emplace_back(edge.GetN(),
-                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale),
+                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent),
                        edge);
   }
   std::sort(edges.begin(), edges.end());
@@ -618,8 +619,8 @@ std::vector<std::string> Search::GetVerboseStats(
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
                edge.GetNInFlight(), edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent) + M, ") ", 8, 5);
     print_tail(&oss, edge.node(), true);
     infos.emplace_back(oss.str());
   }
@@ -1810,6 +1811,7 @@ void SearchWorker::PickNodesToExtendTask(
       const float puct_mult =
           cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
       const float policy_decay_scale = params_.GetPolicyDecayScale();
+      const float policy_decay_exponent = params_.GetPolicyDecayExponent();
       int cache_filled_idx = -1;
       while (cur_limit > 0) {
         // Perform UCT for current node.
@@ -1835,7 +1837,7 @@ void SearchWorker::PickNodesToExtendTask(
             float p = cur_iters[idx].GetP();
             if (policy_decay_scale > 0.0f && p > 0.0f) {
               p = ApplyPolicyDecay(p, static_cast<float>(cur_iters[idx].GetN()),
-                                   policy_decay_scale);
+                                   policy_decay_scale, policy_decay_exponent);
             }
             current_score[idx] = p * puct_mult / (1 + nstarted) + util;
             cache_filled_idx++;

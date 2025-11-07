@@ -407,10 +407,13 @@ class EdgeAndNode {
   // Returns U = numerator * p_eff / N.
   // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
   // policy_decay_scale controls positive policy decay. When scale=0, no decay (p_eff = p).
-  float GetU(float numerator, float policy_decay_scale = 0.0f) const {
+  // policy_decay_exponent controls the strength of decay (default 1.0).
+  float GetU(float numerator, float policy_decay_scale = 0.0f,
+             float policy_decay_exponent = 1.0f) const {
     float p = GetP();
     if (policy_decay_scale > 0.0f && p > 0.0f) {
-      p = ApplyPolicyDecay(p, static_cast<float>(GetN()), policy_decay_scale);
+      p = ApplyPolicyDecay(p, static_cast<float>(GetN()), policy_decay_scale,
+                           policy_decay_exponent);
     }
     return numerator * p / (1 + GetNStarted());
   }

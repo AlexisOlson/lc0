@@ -466,11 +466,12 @@ std::vector<std::string> Search::GetVerboseStats(const Node* node) const {
   const float U_coeff =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
   const float policy_decay_scale = params_.GetPolicyDecayScale();
+  const float policy_decay_exponent = params_.GetPolicyDecayExponent();
   std::vector<std::tuple<uint32_t, float, EdgeAndNode>> edges;
   edges.reserve(node->GetNumEdges());
   for (const auto& edge : node->Edges()) {
     edges.emplace_back(edge.GetN(),
-                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale),
+                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent),
                        edge);
   }
   std::sort(edges.begin(), edges.end());
@@ -556,8 +557,8 @@ std::vector<std::string> Search::GetVerboseStats(const Node* node) const {
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
                edge.GetNInFlight(), edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent) + M, ") ", 8, 5);
     print_tail(&oss, edge.node());
     infos.emplace_back(oss.str());
   }
@@ -1712,6 +1713,7 @@ void SearchWorker::PickNodesToExtendTask(
       const float puct_mult =
           cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
       const float policy_decay_scale = params_.GetPolicyDecayScale();
+      const float policy_decay_exponent = params_.GetPolicyDecayExponent();
       int cache_filled_idx = -1;
       while (cur_limit > 0) {
         // Perform UCT for current node.
@@ -1737,7 +1739,7 @@ void SearchWorker::PickNodesToExtendTask(
             float p = current_pol[idx];
             if (policy_decay_scale > 0.0f && p > 0.0f) {
               p = ApplyPolicyDecay(p, static_cast<float>(cur_iters[idx].GetN()),
-                                   policy_decay_scale);
+                                   policy_decay_scale, policy_decay_exponent);
             }
             current_score[idx] = p * puct_mult / (1 + nstarted) + util;
             cache_filled_idx++;
@@ -2081,11 +2083,12 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
   const float fpu =
       GetFpu(params_, node, node == search_->root_node_, draw_score);
   const float policy_decay_scale = params_.GetPolicyDecayScale();
+  const float policy_decay_exponent = params_.GetPolicyDecayExponent();
   for (auto& edge : node->Edges()) {
     if (edge.GetP() == 0.0f) continue;
     // Flip the sign of a score to be able to easily sort.
     // TODO: should this use logit_q if set??
-    scores.emplace_back(-edge.GetU(puct_mult, policy_decay_scale) - edge.GetQ(fpu, draw_score),
+    scores.emplace_back(-edge.GetU(puct_mult, policy_decay_scale, policy_decay_exponent) - edge.GetQ(fpu, draw_score),
                         edge);
   }
 

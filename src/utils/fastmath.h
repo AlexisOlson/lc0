@@ -120,15 +120,32 @@ inline float FastInvSqrt(const float a) {
 }
 
 // Apply positive policy decay transformation.
-// Returns P_eff = 1 / (1 + odds * scaling) where:
+// Returns P_eff = 1 / (1 + odds * power_term) where:
 //   odds = 1/P - 1
-//   scaling = 1/sqrt(1 + N/scale)
+//   power_term = (1 + N/scale)^(-exponent)
 // When P=0 or scale=0, returns P unchanged.
-inline float ApplyPolicyDecay(float p, float n_child, float scale) {
+// Optimized for common exponent values (1.0 and 0.5).
+inline float ApplyPolicyDecay(float p, float n_child, float scale,
+                               float exponent) {
   if (p == 0.0f || scale == 0.0f) return p;
-  float scaling = FastInvSqrt(1.0f + n_child / scale);
+
+  float base = 1.0f + n_child / scale;
+  float power_term;
+
+  // Optimize common cases
+  if (exponent == 1.0f) {
+    // Linear decay: (1 + N/scale)^(-1) = 1/(1 + N/scale)
+    power_term = 1.0f / base;
+  } else if (exponent == 0.5f) {
+    // Sqrt decay: (1 + N/scale)^(-0.5) = 1/sqrt(1 + N/scale)
+    power_term = FastInvSqrt(base);
+  } else {
+    // General case: use std::pow
+    power_term = std::pow(base, -exponent);
+  }
+
   float odds = 1.0f / p - 1.0f;
-  return 1.0f / (1.0f + odds * scaling);
+  return 1.0f / (1.0f + odds * power_term);
 }
 
 }  // namespace lczero

@@ -533,6 +533,11 @@ const OptionId BaseSearchParams::kPolicyDecayScaleId{
     "policy-decay-scale", "PolicyDecayScale",
     "Scale parameter for positive policy decay. Higher values slow down "
     "convergence. Set to 0 to disable policy decay (P_eff = P)."};
+const OptionId BaseSearchParams::kPolicyDecayExponentId{
+    "policy-decay-exponent", "PolicyDecayExponent",
+    "Exponent for policy decay formula: power_term = (1 + N/scale)^(-exponent). "
+    "Lower values give gentler decay, higher values give stronger decay. "
+    "Default 1.0 gives linear decay, 0.5 gives sqrt decay."};
 
 const OptionId SearchParams::kMaxPrefetchBatchId{
     "max-prefetch", "MaxPrefetch",
@@ -636,6 +641,7 @@ void BaseSearchParams::Populate(OptionsParser* options) {
   options->Add<BoolOption>(kSearchSpinBackoffId) = false;
   options->Add<FloatOption>(kGarbageCollectionDelayId, 0.0f, 100.0f) = 10.0f;
   options->Add<FloatOption>(kPolicyDecayScaleId, 0.0f, 1000000.0f) = 500.0f;
+  options->Add<FloatOption>(kPolicyDecayExponentId, 0.01f, 10.0f) = 1.0f;
 }
 
 void SearchParams::Populate(OptionsParser* options) {
@@ -731,7 +737,8 @@ BaseSearchParams::BaseSearchParams(const OptionsDict& options)
           options.Get<float>(kMaxCollisionVisitsScalingPowerId)),
       kSearchSpinBackoff(options_.Get<bool>(kSearchSpinBackoffId)),
       kGarbageCollectionDelay(options_.Get<float>(kGarbageCollectionDelayId)),
-      kPolicyDecayScale(options_.Get<float>(kPolicyDecayScaleId)) {}
+      kPolicyDecayScale(options_.Get<float>(kPolicyDecayScaleId)),
+      kPolicyDecayExponent(options_.Get<float>(kPolicyDecayExponentId)) {}
 
 SearchParams::SearchParams(const OptionsDict& options)
     : BaseSearchParams(options),
