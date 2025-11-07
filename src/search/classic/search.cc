@@ -471,7 +471,7 @@ std::vector<std::string> Search::GetVerboseStats(const Node* node) const {
   edges.reserve(node->GetNumEdges());
   for (const auto& edge : node->Edges()) {
     edges.emplace_back(edge.GetN(),
-                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent),
+                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_exponent),
                        edge);
   }
   std::sort(edges.begin(), edges.end());
@@ -557,8 +557,8 @@ std::vector<std::string> Search::GetVerboseStats(const Node* node) const {
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
                edge.GetNInFlight(), edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff, policy_decay_scale, policy_decay_exponent) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_exponent), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_exponent) + M, ") ", 8, 5);
     print_tail(&oss, edge.node());
     infos.emplace_back(oss.str());
   }
@@ -1739,7 +1739,8 @@ void SearchWorker::PickNodesToExtendTask(
             float p = current_pol[idx];
             if (policy_decay_scale > 0.0f && p > 0.0f) {
               p = ApplyPolicyDecay(p, static_cast<float>(cur_iters[idx].GetN()),
-                                   policy_decay_scale, policy_decay_exponent);
+                                   policy_decay_scale, policy_decay_exponent,
+                                   node->GetNumEdges());
             }
             current_score[idx] = p * puct_mult / (1 + nstarted) + util;
             cache_filled_idx++;
@@ -2088,7 +2089,7 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget, bool is_odd_depth) {
     if (edge.GetP() == 0.0f) continue;
     // Flip the sign of a score to be able to easily sort.
     // TODO: should this use logit_q if set??
-    scores.emplace_back(-edge.GetU(puct_mult, policy_decay_scale, policy_decay_exponent) - edge.GetQ(fpu, draw_score),
+    scores.emplace_back(-edge.GetU(puct_mult, node->GetNumEdges(), policy_decay_scale, policy_decay_exponent) - edge.GetQ(fpu, draw_score),
                         edge);
   }
 

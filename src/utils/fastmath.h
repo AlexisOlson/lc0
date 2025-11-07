@@ -169,14 +169,15 @@ inline float FastPrecisePow(float a, float b) {
 // Apply positive policy decay transformation.
 // Returns P_eff = 1 / (1 + odds * power_term) where:
 //   odds = 1/P - 1
-//   power_term = (1 + N/scale)^(-exponent)
-// When P=0 or scale=0, returns P unchanged.
+//   power_term = (1 + N/(scale * num_legal_moves))^(-exponent)
+// When P=0, scale=0, or num_legal_moves<=0, returns P unchanged.
 // Optimized for common exponent values (1.0 and 0.5).
 inline float ApplyPolicyDecay(float p, float n_child, float scale,
-                               float exponent) {
-  if (p == 0.0f || scale == 0.0f) return p;
+                               float exponent, int num_legal_moves) {
+  if (p == 0.0f || scale == 0.0f || num_legal_moves <= 0) return p;
 
-  float base = 1.0f + n_child / scale;
+  float effective_scale = scale * num_legal_moves;
+  float base = 1.0f + n_child / effective_scale;
   float power_term;
 
   // Optimize common cases
