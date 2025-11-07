@@ -530,14 +530,16 @@ const OptionId BaseSearchParams::kGarbageCollectionDelayId{
     "The percentage of expected move time until garbage collection start. "
     "Delay lets search find transpositions to freed search tree branches."};
 const OptionId BaseSearchParams::kPolicyDecayScaleId{
-    "policy-decay-scale", "PolicyDecayScale",
-    "Scale parameter for positive policy decay. Higher values slow down "
-    "convergence. Set to 0 to disable policy decay (P_eff = P)."};
+    "policy-decay-scale-per-move", "PolicyDecayScalePerMove",
+    "Scale parameter for positive policy decay, specified per legal move. "
+    "Effective scale = scale_per_move * num_legal_moves. Controls how many "
+    "visits per available move before decay becomes significant. "
+    "Set to 0 to disable policy decay (P_eff = P)."};
 const OptionId BaseSearchParams::kPolicyDecayExponentId{
     "policy-decay-exponent", "PolicyDecayExponent",
     "Exponent for policy decay formula: power_term = (1 + N/scale)^(-exponent). "
     "Lower values give gentler decay, higher values give stronger decay. "
-    "Default 1.0 gives linear decay, 0.5 gives sqrt decay."};
+    "Default 0.5 gives sqrt decay, 1.0 gives linear decay."};
 
 const OptionId SearchParams::kMaxPrefetchBatchId{
     "max-prefetch", "MaxPrefetch",
@@ -640,8 +642,8 @@ void BaseSearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kUCIRatingAdvId, -10000.0f, 10000.0f) = 0.0f;
   options->Add<BoolOption>(kSearchSpinBackoffId) = false;
   options->Add<FloatOption>(kGarbageCollectionDelayId, 0.0f, 100.0f) = 10.0f;
-  options->Add<FloatOption>(kPolicyDecayScaleId, 0.0f, 1000000.0f) = 500.0f;
-  options->Add<FloatOption>(kPolicyDecayExponentId, 0.01f, 10.0f) = 1.0f;
+  options->Add<FloatOption>(kPolicyDecayScaleId, 0.0f, 1000.0f) = 20.0f;
+  options->Add<FloatOption>(kPolicyDecayExponentId, 0.01f, 10.0f) = 0.5f;
 }
 
 void SearchParams::Populate(OptionsParser* options) {
