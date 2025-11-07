@@ -119,6 +119,53 @@ inline float FastInvSqrt(const float a) {
   return y;
 }
 
+// Fast approximate pow(a, b) using bit manipulation.
+// Based on Martin Ankerl's implementation (https://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/)
+// Approximately 4x faster than std::pow for fractional exponents.
+// Accuracy typically within 5%, with rare cases up to 12% error.
+// For better accuracy with integer or near-integer exponents, use FastPrecisePow.
+// Expects positive base. Does no range checking.
+inline float FastPow(float a, float b) {
+  union {
+    float f;
+    int32_t i;
+  } u = {a};
+  u.i = static_cast<int32_t>(b * (u.i - 1064866805) + 1064866805);
+  return u.f;
+}
+
+// More accurate version of FastPow that handles integer exponent part separately.
+// Approximately 3x faster than std::pow.
+// Significantly more accurate than FastPow when exponent > 1.
+// Expects positive base. Does no range checking.
+inline float FastPrecisePow(float a, float b) {
+  // Separate integer and fractional parts
+  int e = static_cast<int>(b);
+  union {
+    float f;
+    int32_t i;
+  } u = {a};
+  u.i = static_cast<int32_t>((b - e) * (u.i - 1064866805) + 1064866805);
+
+  // Handle integer part using exponentiation by squaring
+  float r = 1.0f;
+  float base = a;
+  int exp = e;
+  if (exp < 0) {
+    base = 1.0f / base;
+    exp = -exp;
+  }
+  while (exp) {
+    if (exp & 1) {
+      r *= base;
+    }
+    base *= base;
+    exp >>= 1;
+  }
+
+  return r * u.f;
+}
+
 // Apply positive policy decay transformation.
 // Returns P_eff = 1 / (1 + odds * power_term) where:
 //   odds = 1/P - 1
@@ -140,8 +187,8 @@ inline float ApplyPolicyDecay(float p, float n_child, float scale,
     // Sqrt decay: (1 + N/scale)^(-0.5) = 1/sqrt(1 + N/scale)
     power_term = FastInvSqrt(base);
   } else {
-    // General case: use std::pow
-    power_term = std::pow(base, -exponent);
+    // General case: use FastPrecisePow for ~3x speedup over std::pow
+    power_term = FastPrecisePow(base, -exponent);
   }
 
   float odds = 1.0f / p - 1.0f;
