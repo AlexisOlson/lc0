@@ -628,12 +628,20 @@ std::vector<std::string> Search::GetVerboseStats(
     const auto& edge = std::get<2>(edge_tuple);
     float Q = edge.GetQ(fpu, draw_score);
     float M = m_evaluator.GetMUtility(edge, Q);
+    // Calculate P_eff for display (keeping label as "P" for compatibility)
+    float p_eff = edge.GetP();
+    if (policy_decay_scale > 0.0f && p_eff > 0.0f) {
+      p_eff = ApplyPolicyDecay(p_eff, static_cast<float>(edge.GetN()),
+                               policy_decay_scale, policy_decay_exponent,
+                               node->GetNumEdges());
+      p_eff /= policy_decay_sum;
+    }
     std::ostringstream oss;
     oss << std::left;
     // TODO: should this be displaying transformed index?
     print_head(&oss, edge.GetMove(is_black_to_move).ToString(true),
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
-               edge.GetNInFlight(), edge.GetP());
+               edge.GetNInFlight(), p_eff);
     print_stats(&oss, edge.node());
     print(&oss, "(U: ", edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_exponent, policy_decay_sum), ") ", 6, 5);
     print(&oss, "(S: ", Q + edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_exponent, policy_decay_sum) + M, ") ", 8, 5);
