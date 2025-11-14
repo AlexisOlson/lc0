@@ -166,33 +166,23 @@ inline float FastPrecisePow(float a, float b) {
   return r * u.f;
 }
 
-// Apply positive policy decay transformation.
+// Apply positive policy decay transformation with fixed sqrt decay (exponent=0.5).
 // Returns raw (unnormalized) P_eff = 1 / (1 + odds * power_term) where:
 //   odds = 1/P - 1
 //   effective_scale = scale_per_move * num_legal_moves
-//   power_term = (1 + N/effective_scale)^(-exponent)
+//   power_term = 1/sqrt(1 + N/effective_scale)
 // When P=0, scale=0, or num_legal_moves<=0, returns P unchanged.
 // NOTE: Caller must normalize by sum of all raw_P_eff values to ensure sum(P_eff) = 1.
-// Optimized for common exponent values (0.5 and 1.0).
+// Uses FastInvSqrt for optimal performance.
 inline float ApplyPolicyDecay(float p, float n_child, float scale_per_move,
-                               float exponent, int num_legal_moves) {
+                               int num_legal_moves) {
   if (p == 0.0f || scale_per_move == 0.0f || num_legal_moves <= 0) return p;
 
   float effective_scale = scale_per_move * num_legal_moves;
   float base = 1.0f + n_child / effective_scale;
-  float power_term;
 
-  // Optimize common cases
-  if (exponent == 1.0f) {
-    // Linear decay: (1 + N/scale)^(-1) = 1/(1 + N/scale)
-    power_term = 1.0f / base;
-  } else if (exponent == 0.5f) {
-    // Sqrt decay: (1 + N/scale)^(-0.5) = 1/sqrt(1 + N/scale)
-    power_term = FastInvSqrt(base);
-  } else {
-    // General case: use FastPrecisePow for ~3x speedup over std::pow
-    power_term = FastPrecisePow(base, -exponent);
-  }
+  // Sqrt decay: (1 + N/scale)^(-0.5) = 1/sqrt(1 + N/scale)
+  float power_term = FastInvSqrt(base);
 
   float odds = 1.0f / p - 1.0f;
   return 1.0f / (1.0f + odds * power_term);

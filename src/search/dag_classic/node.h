@@ -727,20 +727,18 @@ class EdgeAndNode {
 
   // Returns U = numerator * p_eff / N.
   // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
-  // policy_decay_scale_per_move controls positive policy decay. When scale=0, no decay (p_eff = p).
-  // policy_decay_exponent controls the strength of decay (default 1.0).
+  // policy_decay_scale_per_move controls positive policy decay with fixed sqrt decay.
+  // When scale=0, no decay (p_eff = p).
   // num_edges is the number of legal moves (used to scale the decay parameter).
   // policy_decay_sum is the sum of raw P_eff for all edges (for sum normalization).
   float GetU(float numerator, int num_edges,
              float policy_decay_scale_per_move = 0.0f,
-             float policy_decay_exponent = 1.0f,
              float policy_decay_sum = 1.0f) const {
     float p = GetP();
     if (policy_decay_scale_per_move > 0.0f && p > 0.0f) {
-      // Calculate raw (unnormalized) P_eff
+      // Calculate raw (unnormalized) P_eff with fixed sqrt decay
       p = ApplyPolicyDecay(p, static_cast<float>(GetN()),
-                           policy_decay_scale_per_move, policy_decay_exponent,
-                           num_edges);
+                           policy_decay_scale_per_move, num_edges);
       // Normalize by sum to ensure sum(P_eff) = 1.0
       p /= policy_decay_sum;
     }
