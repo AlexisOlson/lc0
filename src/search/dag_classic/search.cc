@@ -521,28 +521,11 @@ std::vector<std::string> Search::GetVerboseStats(
   const float cpuct = ComputeCpuct(params_, node->GetTotalVisits(), is_root);
   const float U_coeff =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
-  const float policy_decay_scale = params_.GetPolicyDecayScale();
-
-  // Calculate sum of raw P_eff for normalization
-  float policy_decay_sum = 1.0f;
-  if (policy_decay_scale > 0.0f) {
-    policy_decay_sum = 0.0f;
-    for (const auto& edge : node->Edges()) {
-      float p = edge.GetP();
-      if (p > 0.0f) {
-        policy_decay_sum += ApplyPolicyDecay(
-            p, static_cast<float>(edge.GetN()), policy_decay_scale,
-            node->GetNumEdges());
-      }
-    }
-    if (policy_decay_sum == 0.0f) policy_decay_sum = 1.0f;
-  }
-
   std::vector<std::tuple<uint32_t, float, EdgeAndNode>> edges;
   edges.reserve(node->GetNumEdges());
   for (const auto& edge : node->Edges()) {
     edges.emplace_back(edge.GetN(),
-                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_sum),
+                       edge.GetQ(fpu, draw_score) + edge.GetU(U_coeff),
                        edge);
   }
   std::sort(edges.begin(), edges.end());
@@ -627,22 +610,15 @@ std::vector<std::string> Search::GetVerboseStats(
     const auto& edge = std::get<2>(edge_tuple);
     float Q = edge.GetQ(fpu, draw_score);
     float M = m_evaluator.GetMUtility(edge, Q);
-    // Calculate P_eff for display (keeping label as "P" for compatibility)
-    float p_eff = edge.GetP();
-    if (policy_decay_scale > 0.0f && p_eff > 0.0f) {
-      p_eff = ApplyPolicyDecay(p_eff, static_cast<float>(edge.GetN()),
-                               policy_decay_scale, node->GetNumEdges());
-      p_eff /= policy_decay_sum;
-    }
     std::ostringstream oss;
     oss << std::left;
     // TODO: should this be displaying transformed index?
     print_head(&oss, edge.GetMove(is_black_to_move).ToString(true),
                MoveToNNIndex(edge.GetMove(), 0), edge.GetN(),
-               edge.GetNInFlight(), p_eff);
+               edge.GetNInFlight(), edge.GetP());
     print_stats(&oss, edge.node());
-    print(&oss, "(U: ", edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_sum), ") ", 6, 5);
-    print(&oss, "(S: ", Q + edge.GetU(U_coeff, node->GetNumEdges(), policy_decay_scale, policy_decay_sum) + M, ") ", 8, 5);
+    print(&oss, "(U: ", edge.GetU(U_coeff), ") ", 6, 5);
+    print(&oss, "(S: ", Q + edge.GetU(U_coeff) + M, ") ", 8, 5);
     print_tail(&oss, edge.node(), true);
     infos.emplace_back(oss.str());
   }
@@ -1832,24 +1808,6 @@ void SearchWorker::PickNodesToExtendTask(
           ComputeCpuct(params_, node->GetTotalVisits(), is_root_node);
       const float puct_mult =
           cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
-      const float policy_decay_scale = params_.GetPolicyDecayScale();
-
-      // Calculate sum of raw P_eff for normalization
-      float policy_decay_sum = 1.0f;
-      if (policy_decay_scale > 0.0f) {
-        policy_decay_sum = 0.0f;
-        auto edge_iter = node->Edges();
-        for (int i = 0; i < max_needed; ++i, ++edge_iter) {
-          float p = edge_iter.GetP();
-          if (p > 0.0f) {
-            policy_decay_sum += ApplyPolicyDecay(
-                p, static_cast<float>(edge_iter.GetN()), policy_decay_scale,
-                node->GetNumEdges());
-          }
-        }
-        if (policy_decay_sum == 0.0f) policy_decay_sum = 1.0f;
-      }
-
       int cache_filled_idx = -1;
       while (cur_limit > 0) {
         // Perform UCT for current node.
@@ -1872,14 +1830,8 @@ void SearchWorker::PickNodesToExtendTask(
           int nstarted = current_nstarted[idx];
           const float util = current_util[idx];
           if (idx > cache_filled_idx) {
-            float p = cur_iters[idx].GetP();
-            if (policy_decay_scale > 0.0f && p > 0.0f) {
-              p = ApplyPolicyDecay(p, static_cast<float>(cur_iters[idx].GetN()),
-                                   policy_decay_scale, node->GetNumEdges());
-              // Normalize by sum to ensure sum(P_eff) = 1.0
-              p /= policy_decay_sum;
-            }
-            current_score[idx] = p * puct_mult / (1 + nstarted) + util;
+            current_score[idx] =
+                cur_iters[idx].GetP() * puct_mult / (1 + nstarted) + util;
             cache_filled_idx++;
           }
           if (is_root_node) {

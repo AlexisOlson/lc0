@@ -46,7 +46,6 @@
 #include "chess/gamestate.h"
 #include "chess/position.h"
 #include "neural/backend.h"
-#include "utils/fastmath.h"
 #include "utils/mutex.h"
 
 namespace lczero {
@@ -725,24 +724,10 @@ class EdgeAndNode {
     return edge_ ? edge_->GetMove(flip) : Move();
   }
 
-  // Returns U = numerator * p_eff / N.
+  // Returns U = numerator * p / N.
   // Passed numerator is expected to be equal to (cpuct * sqrt(N[parent])).
-  // policy_decay_scale_per_move controls positive policy decay with fixed sqrt decay.
-  // When scale=0, no decay (p_eff = p).
-  // num_edges is the number of legal moves (used to scale the decay parameter).
-  // policy_decay_sum is the sum of raw P_eff for all edges (for sum normalization).
-  float GetU(float numerator, int num_edges,
-             float policy_decay_scale_per_move = 0.0f,
-             float policy_decay_sum = 1.0f) const {
-    float p = GetP();
-    if (policy_decay_scale_per_move > 0.0f && p > 0.0f) {
-      // Calculate raw (unnormalized) P_eff with fixed sqrt decay
-      p = ApplyPolicyDecay(p, static_cast<float>(GetN()),
-                           policy_decay_scale_per_move, num_edges);
-      // Normalize by sum to ensure sum(P_eff) = 1.0
-      p /= policy_decay_sum;
-    }
-    return numerator * p / (1 + GetNStarted());
+  float GetU(float numerator) const {
+    return numerator * GetP() / (1 + GetNStarted());
   }
 
   std::string DebugString() const;

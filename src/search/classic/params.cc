@@ -534,7 +534,7 @@ const OptionId BaseSearchParams::kPolicyDecayScaleId{
     "Scale parameter for positive policy decay, specified per legal move. "
     "Effective scale = scale_per_move * num_legal_moves. Controls how many "
     "visits per available move before decay becomes significant. Uses fixed "
-    "sqrt decay (exponent=0.5). Set to 0 to disable policy decay (P_eff = P)."};
+    "sqrt decay (exponent=0.5). Range: 1-1000000, default 100."};
 
 const OptionId SearchParams::kMaxPrefetchBatchId{
     "max-prefetch", "MaxPrefetch",
@@ -637,7 +637,7 @@ void BaseSearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kUCIRatingAdvId, -10000.0f, 10000.0f) = 0.0f;
   options->Add<BoolOption>(kSearchSpinBackoffId) = false;
   options->Add<FloatOption>(kGarbageCollectionDelayId, 0.0f, 100.0f) = 10.0f;
-  options->Add<FloatOption>(kPolicyDecayScaleId, 0.0f, 1000.0f) = 20.0f;
+  options->Add<FloatOption>(kPolicyDecayScaleId, 1.0f, 1000000.0f) = 100.0f;
 }
 
 void SearchParams::Populate(OptionsParser* options) {
