@@ -529,6 +529,12 @@ const OptionId BaseSearchParams::kGarbageCollectionDelayId{
     "garbage-collection-delay", "GarbageCollectionDelay",
     "The percentage of expected move time until garbage collection start. "
     "Delay lets search find transpositions to freed search tree branches."};
+const OptionId BaseSearchParams::kPolicyDecayScaleId{
+    "policy-decay-scale-per-move", "PolicyDecayScalePerMove",
+    "Scale parameter for positive policy decay, specified per legal move. "
+    "Effective scale = scale_per_move * num_legal_moves. Controls how many "
+    "visits per available move before decay becomes significant. Uses fixed "
+    "sqrt decay (exponent=0.5). Range: 1-1000000, default 100."};
 
 const OptionId SearchParams::kMaxPrefetchBatchId{
     "max-prefetch", "MaxPrefetch",
@@ -631,6 +637,7 @@ void BaseSearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kUCIRatingAdvId, -10000.0f, 10000.0f) = 0.0f;
   options->Add<BoolOption>(kSearchSpinBackoffId) = false;
   options->Add<FloatOption>(kGarbageCollectionDelayId, 0.0f, 100.0f) = 10.0f;
+  options->Add<FloatOption>(kPolicyDecayScaleId, 1.0f, 1000000.0f) = 100.0f;
 }
 
 void SearchParams::Populate(OptionsParser* options) {
@@ -725,7 +732,8 @@ BaseSearchParams::BaseSearchParams(const OptionsDict& options)
       kMaxCollisionVisitsScalingPower(
           options.Get<float>(kMaxCollisionVisitsScalingPowerId)),
       kSearchSpinBackoff(options_.Get<bool>(kSearchSpinBackoffId)),
-      kGarbageCollectionDelay(options_.Get<float>(kGarbageCollectionDelayId)) {}
+      kGarbageCollectionDelay(options_.Get<float>(kGarbageCollectionDelayId)),
+      kPolicyDecayScale(options_.Get<float>(kPolicyDecayScaleId)) {}
 
 SearchParams::SearchParams(const OptionsDict& options)
     : BaseSearchParams(options),

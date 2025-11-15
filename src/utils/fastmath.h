@@ -104,4 +104,41 @@ inline float FastSign(const float a) {
 #endif
 }
 
+// Fast approximate 1/sqrt(x) using bit manipulation.
+// Based on the classic Quake III algorithm.
+// Expects positive input values. Does no range checking; produces undefined
+// behavior for zero, negative, or special values (NaN, infinity).
+inline float FastInvSqrt(const float a) {
+  float halfx = 0.5f * a;
+  uint32_t i;
+  std::memcpy(&i, &a, sizeof(float));
+  i = 0x5f3759df - (i >> 1);  // Magic constant
+  float y;
+  std::memcpy(&y, &i, sizeof(float));
+  y = y * (1.5f - halfx * y * y);  // Newton iteration
+  return y;
+}
+
+// Apply positive policy decay transformation with fixed sqrt decay (exponent=0.5).
+// Returns raw (unnormalized) P_eff = 1 / (1 + odds * power_term) where:
+//   odds = 1/P - 1
+//   effective_scale = scale_per_move * num_legal_moves
+//   power_term = 1/sqrt(1 + N/effective_scale)
+// When P=0 or num_legal_moves<=0, returns P unchanged.
+// NOTE: Caller must normalize by sum of all raw_P_eff values to ensure sum(P_eff) = 1.
+// Uses FastInvSqrt for optimal performance.
+inline float ApplyPolicyDecay(float p, float n_child, float scale_per_move,
+                               int num_legal_moves) {
+  if (p == 0.0f || num_legal_moves <= 0) return p;
+
+  float effective_scale = scale_per_move * num_legal_moves;
+  float base = 1.0f + n_child / effective_scale;
+
+  // Sqrt decay: (1 + N/scale)^(-0.5) = 1/sqrt(1 + N/scale)
+  float power_term = FastInvSqrt(base);
+
+  float odds = 1.0f / p - 1.0f;
+  return 1.0f / (1.0f + odds * power_term);
+}
+
 }  // namespace lczero
